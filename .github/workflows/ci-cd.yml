@@ -6,19 +6,11 @@ on:
       - main
       - devops
       - quentin-cli
-  workflow_run:
-    workflows: ["CI/CD Pipeline"]
-    types:
-      - completed
-    branches:
-      - devops
-      - main
 
-# Permissions pour écrire dans le repo
+# Permissions pour écrire dans le repo et créer des PR
 permissions:
   contents: write
   pull-requests: write
-  actions: write
 
 jobs:
   # Job 1: Tests & Qualité
@@ -50,8 +42,8 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       
+      - uses: actions/checkout@v3
       - name: Build Docker Image
         run: docker build -t inventory-api .
         
@@ -122,39 +114,24 @@ jobs:
           echo "📦 Version déployée: ${{ github.sha }}"
           echo "✅ Déploiement terminé avec succès!"
 
-  # Job 4: Merge devops → main (si push direct sur devops)
-  merge_devops_to_main:
+  # Job 4: Pull Request Auto - devops vers main
+  auto_pr_to_main:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/devops' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/devops'
     steps:
       - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-      
-      - name: Configure Git
+      - name: Create Pull Request to main
+        # env:
+            # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      
-      - name: Merge devops into main
-        run: |
-          echo "🔄 Fetching main branch..."
-          git fetch origin main:main
-          git checkout main
-          git merge origin/devops --no-ff -m "🚀 Auto-merge: devops → main"
-          git push origin main
-          echo "✅ Successfully merged devops into main!"
+          gh pr create --base main --head devops --title "Auto PR: Merge devops to main" --body "Automated PR created by CI/CD pipeline from devops to main." || echo "PR already exists"
 
-  # Job 5: Déploiement (si push direct sur main)
+  # Job 5: Déploiement Production
   deploy:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to Production
-        run: |
-          echo "🚀 Déploiement en cours sur le serveur de production..."
-          echo "📦 Version déployée: ${{ github.sha }}"
-          echo "✅ Déploiement terminé avec succès!"
+        run: echo "Déploiement en cours sur le serveur de production..."
