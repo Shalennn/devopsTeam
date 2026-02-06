@@ -2,42 +2,43 @@ name: CI/CD Pipeline
 
 on:
   push:
-    [cite_start]branches: [ "quentin-cli" ] # [cite: 97]
+    branches:
+      - quentin-cli
 
 jobs:
-  # Job 1: Tests & Qualité [cite: 84]
+  # Job 1: Tests & Qualité
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
-      - [cite_start]name: Set up Python 3.11 [cite: 85]
+      - name: Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
           
-      - [cite_start]name: Install dependencies [cite: 86]
+      - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt [cite: 86]
           
-      - [cite_start]name: Lint with flake8 [cite: 87]
+      - name: Lint with flake8
         run: flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
         
-      - [cite_start]name: Run PyTest [cite: 88]
+      - name: Run PyTest
         run: pytest tests/
 
-  # Job 2: Build & Sécurité [cite: 89]
+  # Job 2: Build & Sécurité
   build_and_security:
     needs: quality
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       
-      - [cite_start]name: Build Docker Image [cite: 90]
+      - name: Build Docker Image
         run: docker build -t inventory-api .
         
-      - [cite_start]name: Check Image Size (< 100MB) [cite: 90]
+      - name: Check Image Size (< 100MB)
         run: |
           SIZE=$(docker inspect inventory-api --format='{{.Size}}')
           SIZE_MB=$((SIZE / 1024 / 1024))
@@ -45,36 +46,36 @@ jobs:
           if [ $SIZE_MB -ge 100 ]; then
             echo "Error: Image size exceeds 100MB limit"
             exit 1
-          fi
+          fi [cite: 90]
 
-      - [cite_start]name: Run Trivy Vulnerability Scanner [cite: 90]
+      - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: 'inventory-api'
           format: 'table'
-          exit-code: '0' # Ne pas bloquer le pipeline (exit 0)
+          exit-code: '0'
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-  # Job 3: Pull Request Auto [cite: 91]
+  # Job 3: Pull Request Auto
   auto_pr:
     needs: build_and_security
     runs-on: ubuntu-latest
-    [cite_start]if: github.ref == 'refs/heads/develop' # Uniquement sur develop [cite: 92]
+    if: github.ref == 'refs/heads/develop' # Déclenchement sur develop uniquement 
     steps:
       - uses: actions/checkout@v3
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --base main --head develop --title "Auto PR: Merge Develop to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists"
+          gh pr create --base main --head develop --title "Auto PR: Merge Develop to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists" 
 
-  # Job 4: Déploiement Production [cite: 93]
+  # Job 4: Déploiement Production
   deploy:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' # Uniquement sur main
+    if: github.ref == 'refs/heads/main' # Déclenchement sur main uniquement 
     steps:
       - name: Deploy to Production
-        [cite_start]run: echo "🚀 Déploiement en cours sur le serveur de production..." [cite: 94]
+        run: echo "🚀 Déploiement en cours sur le serveur de production..."
