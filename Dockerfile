@@ -26,7 +26,7 @@ USER devopsuser
 COPY --from=builder /root/.local /home/devopsuser/.local
 
 # On copie le code source de l'application
-COPY app/ ./app/
+COPY app/ .
 
 # Configuration des variables d'environnement
 # On ajoute le chemin des bibliothèques installées au PATH de l'utilisateur
@@ -34,16 +34,9 @@ ENV PATH=/home/devopsuser/.local/bin:$PATH
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# On expose le port 5000 
+# On expose le port 5000
 EXPOSE 5000
 
 # Commande pour lancer l'API Flask
-CMD ["python", "app/main.py"]
-
-
-
-
-
-
-
+CMD ["python", "main.py"]
 
