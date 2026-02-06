@@ -81,4 +81,4 @@ jobs:
     if: github.ref == 'refs/heads/main' # Déclenchement sur main uniquement 
     steps:
       - name: Deploy to Production
-        run: echo "🚀 Déploiement en cours sur le serveur de production..."
+        run: echo "Déploiement en cours sur le serveur de production..."
