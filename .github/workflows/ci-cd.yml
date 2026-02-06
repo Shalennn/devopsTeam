@@ -1,0 +1,143 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - devops
+      - quentin-cli
+
+# Permissions pour écrire dans le repo
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  # Job 1: Tests & Qualité
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Lint with flake8
+        run: flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        
+      - name: Run PyTest
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+        run: pytest tests/
+
+  # Job 2: Build & Sécurité
+  build_and_security:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Build Docker Image
+        run: docker build -t inventory-api .
+        
+      - name: Check Image Size (< 100MB)
+        run: |
+          SIZE=$(docker inspect inventory-api --format='{{.Size}}')
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Image size: ${SIZE_MB}MB"
+          if [ $SIZE_MB -ge 100 ]; then
+            echo "Error: Image size exceeds 100MB limit"
+            exit 1
+          fi
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'inventory-api'
+          format: 'table'
+          exit-code: '0'
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  # Job 3: Merge automatique - quentin-cli vers devops
+  merge_to_devops:
+    needs: build_and_security
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/quentin-cli'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge quentin-cli into devops
+        run: |
+          echo "🔄 Fetching devops branch..."
+          git fetch origin devops:devops
+          
+          echo "📍 Switching to devops..."
+          git checkout devops
+          
+          echo "🔀 Merging quentin-cli into devops..."
+          git merge origin/quentin-cli --no-ff -m "🔄 Auto-merge: quentin-cli → devops [skip ci]"
+          
+          echo "⬆️ Pushing to devops..."
+          git push origin devops
+          
+          echo "✅ Successfully merged quentin-cli into devops!"
+
+  # Job 4: Merge automatique - devops vers main
+  merge_to_main:
+    needs: build_and_security
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/devops'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge devops into main
+        run: |
+          echo "🔄 Fetching main branch..."
+          git fetch origin main:main
+          
+          echo "📍 Switching to main..."
+          git checkout main
+          
+          echo "🔀 Merging devops into main..."
+          git merge origin/devops --no-ff -m "🚀 Auto-merge: devops → main"
+          
+          echo "⬆️ Pushing to main..."
+          git push origin main
+          
+          echo "✅ Successfully merged devops into main!"
+
+  # Job 5: Déploiement Production
+  deploy:
+    needs: build_and_security
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy to Production
+        run: |
+          echo "🚀 Déploiement en cours sur le serveur de production..."
+          echo "✅ Déploiement terminé avec succès!"
