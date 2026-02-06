@@ -1,5 +1,5 @@
 # Stage 1: Builder [cite: 63]
-FROM python:3.11-slim as builder
+FROM python:3.11-alpine as builder
 
 WORKDIR /app
 
