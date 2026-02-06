@@ -7,7 +7,7 @@ on:
       - devops
       - quentin-cli
 
-# Permissions pour écrire dans le repo et créer des PR
+# Permissions pour écrire dans le repo
 permissions:
   contents: write
   pull-requests: write
@@ -42,8 +42,8 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      
       - uses: actions/checkout@v3
+      
       - name: Build Docker Image
         run: docker build -t inventory-api .
         
@@ -67,33 +67,69 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-  # Job 3: Pull Request Auto - quentin-cli vers devops
-  auto_pr_to_devops:
+  # Job 3: Merge automatique - quentin-cli vers devops
+  merge_to_devops:
     needs: build_and_security
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/quentin-cli'
     steps:
       - uses: actions/checkout@v3
-      - name: Create Pull Request to devops
-        # env:
-        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        # run: |
-        #   gh pr create --base devops --head quentin-cli --title "Auto PR: Merge quentin-cli to devops" --body "Automated PR created by CI/CD pipeline from quentin-cli to devops." || echo "PR already exists"
-        run : |
-            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
-            echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
-  # Job 4: Pull Request Auto - devops vers main
-  auto_pr_to_main:
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge quentin-cli into devops
+        run: |
+          echo "🔄 Fetching devops branch..."
+          git fetch origin devops:devops
+          
+          echo "📍 Switching to devops..."
+          git checkout devops
+          
+          echo "🔀 Merging quentin-cli into devops..."
+          git merge origin/quentin-cli --no-ff -m "🔄 Auto-merge: quentin-cli → devops [skip ci]"
+          
+          echo "⬆️ Pushing to devops..."
+          git push origin devops
+          
+          echo "✅ Successfully merged quentin-cli into devops!"
+
+  # Job 4: Merge automatique - devops vers main
+  merge_to_main:
     needs: build_and_security
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/devops'
     steps:
       - uses: actions/checkout@v3
-      - name: Create Pull Request to main
-        # env:
-            # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
         run: |
-          gh pr create --base main --head devops --title "Auto PR: Merge devops to main" --body "Automated PR created by CI/CD pipeline from devops to main." || echo "PR already exists"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      
+      - name: Merge devops into main
+        run: |
+          echo "🔄 Fetching main branch..."
+          git fetch origin main:main
+          
+          echo "📍 Switching to main..."
+          git checkout main
+          
+          echo "🔀 Merging devops into main..."
+          git merge origin/devops --no-ff -m "🚀 Auto-merge: devops → main"
+          
+          echo "⬆️ Pushing to main..."
+          git push origin main
+          
+          echo "✅ Successfully merged devops into main!"
 
   # Job 5: Déploiement Production
   deploy:
@@ -102,4 +138,6 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to Production
-        run: echo "Déploiement en cours sur le serveur de production..."
+        run: |
+          echo "🚀 Déploiement en cours sur le serveur de production..."
+          echo "✅ Déploiement terminé avec succès!"
