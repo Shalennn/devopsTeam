@@ -77,9 +77,11 @@ jobs:
       - name: Create Pull Request to devops
         # env:
         #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create --base devops --head quentin-cli --title "Auto PR: Merge quentin-cli to devops" --body "Automated PR created by CI/CD pipeline from quentin-cli to devops." || echo "PR already exists"
-
+        # run: |
+        #   gh pr create --base devops --head quentin-cli --title "Auto PR: Merge quentin-cli to devops" --body "Automated PR created by CI/CD pipeline from quentin-cli to devops." || echo "PR already exists"
+        run : |
+            echo "Pull Request Number - ${{ steps.cpr.outputs.pull-request-number }}"
+            echo "Pull Request URL - ${{ steps.cpr.outputs.pull-request-url }}"
   # Job 4: Pull Request Auto - devops vers main
   auto_pr_to_main:
     needs: build_and_security
