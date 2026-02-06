@@ -78,7 +78,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --base main --head devops --title "Auto PR: Merge Devops to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists" 
+          gh pr create --base quentin-cli --head devops --title "Auto PR: Merge Devops to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists" 
 
   # Job 4: Déploiement Production
   deploy:
