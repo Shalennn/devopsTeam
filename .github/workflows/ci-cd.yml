@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
+      - devops
       - quentin-cli
+
+# Permissions pour écrire dans le repo et créer des PR
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   # Job 1: Tests & Qualité
@@ -28,7 +34,7 @@ jobs:
         
       - name: Run PyTest
         env:
-            PYTHONPATH: ${{github.workspace}}
+          PYTHONPATH: ${{ github.workspace }}
         run: pytest tests/
 
   # Job 2: Build & Sécurité
@@ -65,14 +71,14 @@ jobs:
   auto_pr:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/devops' # Déclenchement sur develop uniquement 
+    if: github.ref == 'refs/heads/devops' # Déclenchement sur devops uniquement 
     steps:
       - uses: actions/checkout@v3
       - name: Create Pull Request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr create --base devops --head main --title "Auto PR: Merge Develop to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists" 
+          gh pr create --base main --head devops --title "Auto PR: Merge Devops to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists" 
 
   # Job 4: Déploiement Production
   deploy:
@@ -81,4 +87,4 @@ jobs:
     if: github.ref == 'refs/heads/main' # Déclenchement sur main uniquement 
     steps:
       - name: Deploy to Production
-        run: echo "Déploiement en cours sur le serveur de production..."
+        run: echo "🚀 Déploiement en cours sur le serveur de production..."
