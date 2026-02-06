@@ -3,7 +3,14 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
+      - main
+      - devops
       - quentin-cli
+  workflow_run:
+    workflows: ["CI/CD Pipeline"]
+    types:
+      - completed
+    branches:
       - devops
       - main
 
@@ -11,6 +18,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 
 jobs:
   # Job 1: Tests & Qualité
@@ -67,11 +75,11 @@ jobs:
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
 
-  # Job 3: Merge automatique - quentin-cli vers devops
-  merge_to_devops:
+  # Job 3: Merge quentin-cli → devops → main → deploy (TOUT EN UN)
+  auto_merge_chain:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/quentin-cli'
+    if: github.ref == 'refs/heads/quentin-cli' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v3
         with:
@@ -83,27 +91,42 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       
-      - name: Merge quentin-cli into devops
+      - name: "Step 1: Merge quentin-cli → devops"
         run: |
-          echo "🔄 Fetching devops branch..."
+          echo "======================================"
+          echo "🔄 STEP 1: Merge quentin-cli → devops"
+          echo "======================================"
           git fetch origin devops:devops
-          
-          echo "📍 Switching to devops..."
           git checkout devops
-          
-          echo "🔀 Merging quentin-cli into devops..."
-          git merge origin/quentin-cli --no-ff -m "🔄 Auto-merge: quentin-cli → devops [skip ci]"
-          
-          echo "⬆️ Pushing to devops..."
+          git merge origin/quentin-cli --no-ff -m "🔄 Auto-merge: quentin-cli → devops"
           git push origin devops
-          
-          echo "✅ Successfully merged quentin-cli into devops!"
+          echo "✅ Step 1 completed!"
+      
+      - name: "Step 2: Merge devops → main"
+        run: |
+          echo "======================================"
+          echo "🚀 STEP 2: Merge devops → main"
+          echo "======================================"
+          git fetch origin main:main
+          git checkout main
+          git merge origin/devops --no-ff -m "🚀 Auto-merge: devops → main"
+          git push origin main
+          echo "✅ Step 2 completed!"
+      
+      - name: "Step 3: Deploy to Production"
+        run: |
+          echo "======================================"
+          echo "🎯 STEP 3: Deploy to Production"
+          echo "======================================"
+          echo "🚀 Déploiement en cours sur le serveur de production..."
+          echo "📦 Version déployée: ${{ github.sha }}"
+          echo "✅ Déploiement terminé avec succès!"
 
-  # Job 4: Merge automatique - devops vers main
-  merge_to_main:
+  # Job 4: Merge devops → main (si push direct sur devops)
+  merge_devops_to_main:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/devops'
+    if: github.ref == 'refs/heads/devops' && github.event_name == 'push'
     steps:
       - uses: actions/checkout@v3
         with:
@@ -119,25 +142,19 @@ jobs:
         run: |
           echo "🔄 Fetching main branch..."
           git fetch origin main:main
-          
-          echo "📍 Switching to main..."
           git checkout main
-          
-          echo "🔀 Merging devops into main..."
           git merge origin/devops --no-ff -m "🚀 Auto-merge: devops → main"
-          
-          echo "⬆️ Pushing to main..."
           git push origin main
-          
           echo "✅ Successfully merged devops into main!"
 
-  # Job 5: Déploiement Production
+  # Job 5: Déploiement (si push direct sur main)
   deploy:
     needs: build_and_security
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     steps:
       - name: Deploy to Production
         run: |
           echo "🚀 Déploiement en cours sur le serveur de production..."
+          echo "📦 Version déployée: ${{ github.sha }}"
           echo "✅ Déploiement terminé avec succès!"
