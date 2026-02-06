@@ -1,11 +1,13 @@
 import pytest
 from app.main import app
 
+
 @pytest.fixture
 def client():
     app.config['TESTING'] = True
     with app.test_client() as client:
         yield client
+
 
 def test_servers_list():
     client = app.test_client()
