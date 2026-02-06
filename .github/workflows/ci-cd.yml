@@ -3,9 +3,9 @@ name: CI/CD Pipeline
 on:
   push:
     branches:
-      - main
-      - devops
       - quentin-cli
+      - devops
+      - main
 
 # Permissions pour écrire dans le repo
 permissions:
