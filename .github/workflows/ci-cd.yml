@@ -49,7 +49,7 @@ jobs:
           if [ $SIZE_MB -ge 100 ]; then
             echo "Error: Image size exceeds 100MB limit"
             exit 1
-          fi [cite: 90]
+          fi
 
       - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@master
