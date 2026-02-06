@@ -1,5 +1,18 @@
+import pytest
 from app.main import app
 
+@pytest.fixture
+def client():
+    """Create and configure a test instance of the Flask app."""
+    app.config['TESTING'] = True
+    with app.test_client() as client:
+        yield client
+
+
+@pytest.fixture
+def client(app):
+    """Create a test client for the app."""
+    return app.test_client()
 
 def test_health():
     client = app.test_client()
