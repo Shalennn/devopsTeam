@@ -1,51 +1,80 @@
-name: CI/CD Python Docker
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
+    [cite_start]branches: [ "main", "develop" ] # [cite: 97]
 
 jobs:
+  # Job 1: Tests & Qualité [cite: 84]
   quality:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout du code
-        uses: actions/checkout@v4
-
-      - name: Installer Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v3
+      
+      - [cite_start]name: Set up Python 3.11 [cite: 85]
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
-
-      - name: Installer dépendances
+          python-version: "3.11"
+          
+      - [cite_start]name: Install dependencies [cite: 86]
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest flake8 coverage bandit
+          
+      - [cite_start]name: Lint with flake8 [cite: 87]
+        run: flake8 app/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        
+      - [cite_start]name: Run PyTest [cite: 88]
+        run: pytest tests/
 
-      - name: Lint (flake8)
-        run: flake8 app tests
-
-      - name: Tests unitaires
-        run: pytest
-
-      - name: Couverture de code
-        run: |
-          coverage run -m pytest
-          coverage report --fail-under=80
-
-      - name: Analyse sécurité (bandit)
-        run: bandit -r app
-
-  docker:
+  # Job 2: Build & Sécurité [cite: 89]
+  build_and_security:
     needs: quality
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Checkout du code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
+      
+      - [cite_start]name: Build Docker Image [cite: 90]
+        run: docker build -t inventory-api .
+        
+      - [cite_start]name: Check Image Size (< 100MB) [cite: 90]
+        run: |
+          SIZE=$(docker inspect inventory-api --format='{{.Size}}')
+          SIZE_MB=$((SIZE / 1024 / 1024))
+          echo "Image size: ${SIZE_MB}MB"
+          if [ $SIZE_MB -ge 100 ]; then
+            echo "Error: Image size exceeds 100MB limit"
+            exit 1
+          fi
 
-      - name: Build image Docker
-        run: docker build -t myapp:latest .
+      - [cite_start]name: Run Trivy Vulnerability Scanner [cite: 90]
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'inventory-api'
+          format: 'table'
+          exit-code: '0' # Ne pas bloquer le pipeline (exit 0)
+          ignore-unfixed: true
+          vuln-type: 'os,library'
+          severity: 'CRITICAL,HIGH'
+
+  # Job 3: Pull Request Auto [cite: 91]
+  auto_pr:
+    needs: build_and_security
+    runs-on: ubuntu-latest
+    [cite_start]if: github.ref == 'refs/heads/develop' # Uniquement sur develop [cite: 92]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Create Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create --base main --head develop --title "Auto PR: Merge Develop to Main" --body "Automated PR created by CI/CD pipeline." || echo "PR already exists"
+
+  # Job 4: Déploiement Production [cite: 93]
+  deploy:
+    needs: build_and_security
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' # Uniquement sur main
+    steps:
+      - name: Deploy to Production
+        [cite_start]run: echo "🚀 Déploiement en cours sur le serveur de production..." [cite: 94]

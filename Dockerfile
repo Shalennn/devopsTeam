@@ -1,49 +1,29 @@
-# --- STAGE 1 : Builder ---
-# On utilise une image "slim" pour installer les dépendances proprement
-FROM python:3.11-slim AS builder
+# Stage 1: Builder [cite: 63]
+FROM python:3.11-slim as builder
 
 WORKDIR /app
 
-# On copie le fichier des dépendances
+# Installation des dépendances dans un dossier local
 COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
-# Installation des dépendances dans le dossier local de l'utilisateur
-# --no-cache-dir permet de gagner de la place immédiatement
-RUN pip install --user --no-cache-dir -r requirements.txt
-
-
-# --- STAGE 2 : Runtime ---
-# Image finale ultra-légère (Alpine) pour respecter l'objectif < 100 MB
+# Stage 2: Runtime [cite: 66]
 FROM python:3.11-alpine
 
 WORKDIR /app
 
-# Création d'un utilisateur non-root pour la sécurité (Partie 4 du TP)
-RUN adduser -D devopsuser
-USER devopsuser
+# Copie des bibliothèques depuis le builder
+COPY --from=builder /install /usr/local
 
-# On récupère uniquement les packages installés lors du premier stage
-COPY --from=builder /root/.local /home/devopsuser/.local
+# Copie du code source
+COPY app/ app/
 
-# On copie le code source de l'application
-COPY app/ ./app/
+# Créer un utilisateur non-root pour la sécurité [cite: 68]
+RUN adduser -D myuser
+USER myuser
 
-# Configuration des variables d'environnement
-# On ajoute le chemin des bibliothèques installées au PATH de l'utilisateur
-ENV PATH=/home/devopsuser/.local/bin:$PATH
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# On expose le port 5000 
+# Exposer le port 5000 [cite: 69]
 EXPOSE 5000
 
-# Commande pour lancer l'API Flask
+# Lancer l'application
 CMD ["python", "app/main.py"]
-
-
-
-
-
-
-
-
