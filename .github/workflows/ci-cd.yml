@@ -1,8 +1,8 @@
 name: CI/CD Pipeline
 
 on:
-    push:
-        [cite_start]branches: [ "quentin-cli" ] # [cite: 97]
+  push:
+    [cite_start]branches: [ "quentin-cli" ] # [cite: 97]
 
 jobs:
   # Job 1: Tests & Qualité [cite: 84]
@@ -77,4 +77,4 @@ jobs:
     if: github.ref == 'refs/heads/main' # Uniquement sur main
     steps:
       - name: Deploy to Production
-        [cite_start]run: echo Deploiement en prod." [cite: 94]
+        [cite_start]run: echo "🚀 Déploiement en cours sur le serveur de production..." [cite: 94]
