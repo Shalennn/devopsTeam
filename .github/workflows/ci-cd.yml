@@ -42,8 +42,8 @@ jobs:
     needs: quality
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
       
+      - uses: actions/checkout@v3
       - name: Build Docker Image
         run: docker build -t inventory-api .
         
@@ -75,8 +75,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Pull Request to devops
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # env:
+        #   GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr create --base devops --head quentin-cli --title "Auto PR: Merge quentin-cli to devops" --body "Automated PR created by CI/CD pipeline from quentin-cli to devops." || echo "PR already exists"
 
@@ -88,8 +88,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: Create Pull Request to main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # env:
+            # GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh pr create --base main --head devops --title "Auto PR: Merge devops to main" --body "Automated PR created by CI/CD pipeline from devops to main." || echo "PR already exists"
 
@@ -100,4 +100,4 @@ jobs:
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Deploy to Production
-        run: echo "🚀 Déploiement en cours sur le serveur de production..."
+        run: echo "Déploiement en cours sur le serveur de production..."
