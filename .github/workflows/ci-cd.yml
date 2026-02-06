@@ -2,7 +2,7 @@ name: CI/CD Pipeline
 
 on:
     push:
-    [cite_start]branches: [ "quentin-cli" ] # [cite: 97]
+        [cite_start]branches: [ "quentin-cli" ] # [cite: 97]
 
 jobs:
   # Job 1: Tests & Qualité [cite: 84]
